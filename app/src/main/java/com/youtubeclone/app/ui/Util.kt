@@ -89,5 +89,27 @@ fun formatDuration(sec: Long): String {
     else String.format(Locale.US, "%d:%02d", m, s)
 }
 
+fun speedLabel(s: Float): String = String.format(Locale.US, "%.2f", s).trimEnd('0').trimEnd('.') + "x"
+
+/** "2026-11-20T07:19:04-08:00" jaisi date ko "4 days ago" banata hai; pehle se text ho to waisa hi rehne deta hai. */
+fun timeAgo(s: String): String {
+    if (s.isBlank()) return s
+    val then = try {
+        java.time.OffsetDateTime.parse(s).toInstant()
+    } catch (e: Exception) {
+        return s
+    }
+    val secs = java.time.Duration.between(then, java.time.Instant.now()).seconds
+    val n: Long
+    val unit: String
+    if (secs < 60) return "just now"
+    else if (secs < 3600) { n = secs / 60; unit = "minute" }
+    else if (secs < 86400) { n = secs / 3600; unit = "hour" }
+    else if (secs < 2_592_000) { n = secs / 86400; unit = "day" }
+    else if (secs < 31_536_000) { n = secs / 2_592_000; unit = "month" }
+    else { n = secs / 31_536_000; unit = "year" }
+    return "$n $unit${if (n > 1) "s" else ""} ago"
+}
+
 fun meta(v: VideoItem): String =
-    listOf(v.uploader, formatViews(v.views), v.uploaded).filter { it.isNotBlank() }.joinToString(" · ")
+    listOf(v.uploader, formatViews(v.views), timeAgo(v.uploaded)).filter { it.isNotBlank() }.joinToString(" · ")

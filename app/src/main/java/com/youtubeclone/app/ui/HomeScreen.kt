@@ -34,8 +34,8 @@ import com.youtubeclone.app.data.Repo
 import com.youtubeclone.app.player.PlayerController
 
 private val CHIPS = listOf(
-    "All", "Music", "Gaming", "Live", "News", "Movies", "Sports",
-    "Learning", "Podcasts", "Comedy", "Cooking", "Tech",
+    "All", "NEET", "Physics", "Chemistry", "Biology", "NCERT",
+    "PYQ", "Mock Test", "Revision", "Motivation", "Study Tips",
 )
 
 @Composable

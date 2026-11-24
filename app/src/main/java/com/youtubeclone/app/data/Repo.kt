@@ -54,14 +54,33 @@ object Repo {
         emptyList()
     }
 
+    private fun homeQueries(chip: String): List<String> = when (chip) {
+        "All" -> listOf("NEET 2027 preparation", "NEET physics chemistry biology lecture", "NEET strategy toppers")
+        "NEET" -> listOf("NEET 2027")
+        "PYQ" -> listOf("NEET previous year questions solved")
+        "Mock Test" -> listOf("NEET mock test discussion")
+        "Revision" -> listOf("NEET quick revision")
+        "Motivation" -> listOf("NEET motivation")
+        "Study Tips" -> listOf("NEET study strategy toppers")
+        else -> listOf("NEET $chip")
+    }
+
+    /** Home feed: sirf normal videos (live aur Shorts nahi), kai searches mila kar. */
     fun home(chip: String): List<VideoItem> {
-        if (chip == "All") {
-            val t = trending()
-            if (t.isNotEmpty()) return t
-            return search("trending videos today").items.videos()
+        val qs = homeQueries(chip)
+        val results = arrayOfNulls<List<VideoItem>>(qs.size)
+        val threads = qs.mapIndexed { i, q ->
+            Thread {
+                results[i] = try { search(q).items.videos() } catch (e: Exception) { emptyList() }
+            }.also { it.start() }
         }
-        val q = if (chip == "Live") "live now" else chip
-        return search(q).items.videos()
+        threads.forEach { it.join() }
+
+        val lists = results.map { it ?: emptyList() }
+        val merged = mutableListOf<VideoItem>()
+        val longest = lists.maxOfOrNull { it.size } ?: 0
+        for (i in 0 until longest) lists.forEach { l -> l.getOrNull(i)?.let { merged.add(it) } }
+        return merged.distinctBy { it.url }.filter { it.duration > 60 }
     }
 
     // ---------- Search ----------
@@ -89,7 +108,7 @@ object Repo {
     fun stream(url: String): StreamInfo = StreamInfo.getInfo(url)
 
     fun related(info: StreamInfo): List<VideoItem> =
-        info.relatedItems.filterIsInstance<StreamInfoItem>().map { it.toVideo() }
+        info.relatedItems.filterIsInstance<StreamInfoItem>().map { it.toVideo() }.filter { it.duration >= 0 }
 
     fun comments(videoUrl: String): List<CommentItem> =
         CommentsInfo.getInfo(videoUrl).relatedItems.map {

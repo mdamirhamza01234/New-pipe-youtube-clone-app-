@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,6 +32,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Settings
@@ -46,6 +48,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -154,6 +157,8 @@ fun WatchScreen(nav: Nav) {
                             player = PlayerController.exo
                             setShowNextButton(false)
                             setShowPreviousButton(false)
+                            setShowRewindButton(false)
+                            setShowFastForwardButton(false)
                             setShutterBackgroundColor(android.graphics.Color.BLACK)
                             setFullscreenButtonClickListener { UiFlags.fullscreen = it }
 
@@ -230,6 +235,16 @@ fun WatchScreen(nav: Nav) {
                     modifier = Modifier.fillMaxSize(),
                 )
 
+                // YouTube jaisa "video niche karo" (minimize) arrow
+                if (!compact) {
+                    IconButton(
+                        onClick = { PlayerController.expanded = false },
+                        modifier = Modifier.align(Alignment.TopStart),
+                    ) {
+                        Icon(Icons.Filled.KeyboardArrowDown, "Minimize", Modifier.size(34.dp), tint = Color.White)
+                    }
+                }
+
                 hud?.let { t ->
                     Text(
                         t,
@@ -304,7 +319,7 @@ private fun Details(info: StreamInfo, nav: Nav, modifier: Modifier) {
                 Text(info.name, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, lineHeight = 24.sp)
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    listOf(formatViews(info.viewCount), info.textualUploadDate ?: "")
+                    listOf(formatViews(info.viewCount), timeAgo(info.textualUploadDate ?: ""))
                         .filter { it.isNotBlank() }.joinToString(" · "),
                     fontSize = 12.sp,
                     color = cs.onSurfaceVariant,
@@ -376,18 +391,8 @@ private fun Details(info: StreamInfo, nav: Nav, modifier: Modifier) {
                     "Save",
                     active = saved,
                 ) { Store.toggleWatchLater(me) }
-                Box {
-                    val sp = PlayerController.speed
-                    Pill(Icons.Outlined.Speed, if (sp == 1f) "Speed" else "${sp}x") { speedMenu = true }
-                    DropdownMenu(expanded = speedMenu, onDismissRequest = { speedMenu = false }) {
-                        listOf(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f).forEach { s ->
-                            DropdownMenuItem(
-                                text = { Text(if (s == sp) "${s}x ✓" else "${s}x") },
-                                onClick = { speedMenu = false; PlayerController.changeSpeed(s) },
-                            )
-                        }
-                    }
-                }
+                val curSpeed = PlayerController.speed
+                Pill(Icons.Outlined.Speed, if (curSpeed == 1f) "Speed" else speedLabel(curSpeed)) { speedMenu = true }
                 Box {
                     val q = PlayerController.quality
                     Pill(Icons.Outlined.Settings, if (q != null) "${q}p" else "Quality") { qualityMenu = true }
@@ -484,4 +489,5 @@ private fun Details(info: StreamInfo, nav: Nav, modifier: Modifier) {
     }
 
     if (showDownload) DownloadDialog(info) { showDownload = false }
+    if (speedMenu) SpeedDialog { speedMenu = false }
 }
