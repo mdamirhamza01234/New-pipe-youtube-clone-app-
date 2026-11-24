@@ -57,12 +57,12 @@ fun YtLogo() {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             Modifier
-                .size(width = 30.dp, height = 21.dp)
-                .clip(RoundedCornerShape(6.dp))
+                .size(26.dp)
+                .clip(CircleShape)
                 .background(YtRed),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Filled.PlayArrow, null, Modifier.size(16.dp), tint = Color.White)
+            Icon(Icons.Filled.PlayArrow, null, Modifier.size(17.dp), tint = Color.White)
         }
         Spacer(Modifier.width(6.dp))
         Text("YouTube Clone", fontSize = 19.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.8).sp)

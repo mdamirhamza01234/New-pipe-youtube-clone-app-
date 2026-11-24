@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +15,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -67,6 +75,12 @@ fun AppRoot() {
 
     val onShorts = nav.stack.isEmpty() && nav.tab == 1
 
+    var splash by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        delay(900)
+        splash = false
+    }
+
     Surface(Modifier.fillMaxSize(), color = cs.background, contentColor = cs.onBackground) {
         Box(Modifier.fillMaxSize()) {
             Scaffold(
@@ -101,6 +115,21 @@ fun AppRoot() {
 
             if (PlayerController.url != null && PlayerController.expanded) {
                 WatchScreen(nav)
+            }
+
+            if (splash) {
+                Box(Modifier.fillMaxSize().background(Color(0xFF0F0F0F)), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            Modifier.size(84.dp).clip(CircleShape).background(YtRed),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(Icons.Filled.PlayArrow, null, Modifier.size(52.dp), tint = Color.White)
+                        }
+                        Spacer(Modifier.height(16.dp))
+                        Text("YouTube Clone", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }

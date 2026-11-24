@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.youtubeclone.app.data.Repo
+import com.youtubeclone.app.data.ShortsLimiter
 import com.youtubeclone.app.download.DownloadCenter
 import com.youtubeclone.app.data.Store
 import com.youtubeclone.app.data.VideoItem
@@ -176,6 +177,12 @@ fun LibraryScreen(nav: Nav) {
                 SettingRow("Autoplay", "Video khatam hone par agla video apne aap chale", Store.autoplay) {
                     Store.updateAutoplay(it)
                 }
+                Text(
+                    "Shorts aaj: ${ShortsLimiter.todayMs / 60_000} / 120 minute · ek baar mein max 3 minute",
+                    Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    fontSize = 12.sp,
+                    color = cs.onSurfaceVariant,
+                )
             }
         }
         item {

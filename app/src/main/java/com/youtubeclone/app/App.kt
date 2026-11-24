@@ -1,6 +1,7 @@
 package com.youtubeclone.app
 
 import android.app.Application
+import com.youtubeclone.app.data.ShortsLimiter
 import com.youtubeclone.app.data.Store
 import com.youtubeclone.app.download.DownloadCenter
 import com.youtubeclone.app.player.PlayerController
@@ -19,6 +20,7 @@ class App : Application() {
         )
         Store.init(this)
         DownloadCenter.init(this)
+        ShortsLimiter.init(this)
         PlayerController.init(this)
     }
 }

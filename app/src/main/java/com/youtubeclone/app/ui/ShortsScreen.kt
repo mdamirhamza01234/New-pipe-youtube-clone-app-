@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material.icons.outlined.WatchLater
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Button
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
@@ -66,6 +67,8 @@ import com.youtubeclone.app.data.Cache
 import com.youtubeclone.app.data.ChannelItem
 import com.youtubeclone.app.data.Entry
 import com.youtubeclone.app.data.Repo
+import com.youtubeclone.app.data.ShortsBlock
+import com.youtubeclone.app.data.ShortsLimiter
 import com.youtubeclone.app.data.Store
 import com.youtubeclone.app.data.VideoItem
 import com.youtubeclone.app.player.Playback
@@ -151,12 +154,30 @@ fun ShortsScreen() {
     }
     DisposableEffect(Unit) {
         PlayerController.exo.pause() // bada video chal raha ho to roko
-        onDispose { exo.release() }
+        ShortsLimiter.enter()
+        onDispose {
+            ShortsLimiter.leave()
+            exo.release()
+        }
     }
 
     var playing by remember { mutableStateOf(true) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { exo.pause() }
-    LifecycleEventEffect(Lifecycle.Event.ON_START) { if (playing && items.isNotEmpty()) exo.play() }
+    LifecycleEventEffect(Lifecycle.Event.ON_START) {
+        if (playing && items.isNotEmpty() && ShortsLimiter.blocked == null) exo.play()
+    }
+
+    // Har second: chalta hai to time gino; limit puri ho to rok do
+    LaunchedEffect(exo) {
+        while (true) {
+            delay(1000)
+            if (exo.isPlaying) ShortsLimiter.tick(1000)
+            if (ShortsLimiter.blocked != null && exo.isPlaying) {
+                exo.pause()
+                playing = false
+            }
+        }
+    }
 
     LaunchedEffect(Unit) { if (items.isEmpty()) ShortsState.loadMore() }
 
@@ -181,8 +202,9 @@ fun ShortsScreen() {
                     val info = withContext(Dispatchers.IO) { Cache.stream(v.url) }
                     exo.setMediaSource(Playback.source(info, null))
                     exo.prepare()
-                    exo.playWhenReady = true
-                    playing = true
+                    val ok = ShortsLimiter.blocked == null
+                    exo.playWhenReady = ok
+                    playing = ok
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Throwable) {
@@ -231,6 +253,55 @@ fun ShortsScreen() {
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
         )
+
+        // Limit poori ho gayi: Shorts band
+        ShortsLimiter.blocked?.let { b ->
+            LimitOverlay(b) {
+                ShortsLimiter.newSession()
+                playing = true
+                exo.play()
+            }
+        }
+    }
+}
+
+@Composable
+private fun LimitOverlay(block: ShortsBlock, onContinue: () -> Unit) {
+    val usedMin = (ShortsLimiter.todayMs / 60_000).toInt()
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0F0F0F))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {},
+            )
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+    ) {
+        Text(
+            if (block == ShortsBlock.DAILY) "Aaj ka Shorts limit poora" else "Thoda break lo",
+            color = Color.White,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            if (block == ShortsBlock.DAILY)
+                "Aaj aapne $usedMin minute Shorts dekhe (limit 2 ghante). Kal phir milte hain!"
+            else
+                "Lagataar 3 minute Shorts ho gaye, isliye ruk gaye. Aaj ab tak $usedMin minute dekhe (limit 120 minute).",
+            color = Color(0xFFAAAAAA),
+            fontSize = 14.sp,
+            textAlign = TextAlign.Center,
+        )
+        if (block == ShortsBlock.SESSION) {
+            Spacer(Modifier.height(20.dp))
+            Button(onClick = onContinue) { Text("Phir se dekho") }
+        }
     }
 }
 
