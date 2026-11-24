@@ -42,7 +42,7 @@ import com.youtubeclone.app.player.PlayerController
 import org.schabi.newpipe.extractor.stream.StreamInfo
 
 @Composable
-private fun SettingRow(icon: ImageVector, title: String, value: String, onClick: () -> Unit, trailing: @Composable (() -> Unit)? = null) {
+private fun SheetRow(icon: ImageVector, title: String, value: String, onClick: () -> Unit, trailing: @Composable (() -> Unit)? = null) {
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -85,13 +85,13 @@ fun PlayerSettingsSheet(info: StreamInfo, onDismiss: () -> Unit) {
                     if (captions.isEmpty()) Text("Is video mein captions nahi hain", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 else -> {
-                    SettingRow(Icons.Outlined.Settings, "Quality", if (q != null) "${q}p" else "Auto") { page = "quality" }
-                    SettingRow(Icons.Outlined.Speed, "Playback speed", speedLabel(PlayerController.speed)) { speedDlg = true }
-                    SettingRow(Icons.Outlined.ClosedCaption, "Captions", PlayerController.caption?.displayLanguageName ?: "Off") { page = "captions" }
-                    SettingRow(Icons.Outlined.Repeat, "Loop video", "", { PlayerController.changeLoop(!PlayerController.loop) }) {
+                    SheetRow(Icons.Outlined.Settings, "Quality", if (q != null) "${q}p" else "Auto") { page = "quality" }
+                    SheetRow(Icons.Outlined.Speed, "Playback speed", speedLabel(PlayerController.speed)) { speedDlg = true }
+                    SheetRow(Icons.Outlined.ClosedCaption, "Captions", PlayerController.caption?.displayLanguageName ?: "Off") { page = "captions" }
+                    SheetRow(Icons.Outlined.Repeat, "Loop video", "", { PlayerController.changeLoop(!PlayerController.loop) }) {
                         Switch(PlayerController.loop, { PlayerController.changeLoop(it) })
                     }
-                    SettingRow(Icons.Outlined.Info, "Stats for nerds", "") { stats = true }
+                    SheetRow(Icons.Outlined.Info, "Stats for nerds", "") { stats = true }
                 }
             }
         }

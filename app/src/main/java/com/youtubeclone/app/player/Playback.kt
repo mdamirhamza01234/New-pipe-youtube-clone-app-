@@ -65,7 +65,7 @@ object Playback {
     fun captions(info: StreamInfo): List<org.schabi.newpipe.extractor.stream.SubtitlesStream> =
         info.subtitles.filter { it.deliveryMethod == org.schabi.newpipe.extractor.stream.DeliveryMethod.PROGRESSIVE_HTTP }
 
-    fun source(info: StreamInfo, height: Int?, caption: org.schabi.newpipe.extractor.stream.SubtitlesStream?): MediaSource {
+    fun source(info: StreamInfo, height: Int?, caption: org.schabi.newpipe.extractor.stream.SubtitlesStream? = null): MediaSource {
         val base = baseSource(info, height)
         if (caption == null) return base
         val mime = when (caption.format) {
