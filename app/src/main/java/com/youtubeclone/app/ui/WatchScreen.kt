@@ -245,6 +245,15 @@ fun WatchScreen(nav: Nav) {
                     }
                 }
 
+                // Settings (gear) icon
+                if (!compact && !inPip && info != null) {
+                    var settings by remember { mutableStateOf(false) }
+                    IconButton(onClick = { settings = true }, modifier = Modifier.align(Alignment.TopEnd)) {
+                        Icon(Icons.Outlined.Settings, "Settings", Modifier.size(26.dp), tint = Color.White)
+                    }
+                    if (settings) PlayerSettingsSheet(info) { settings = false }
+                }
+
                 hud?.let { t ->
                     Text(
                         t,

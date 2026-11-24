@@ -61,7 +61,28 @@ object Playback {
         .setConnectTimeoutMs(15_000)
         .setReadTimeoutMs(20_000)
 
-    fun source(info: StreamInfo, height: Int?): MediaSource {
+    /** Subtitles wale (captions) streams, jo seedhe URL se chalte hain. */
+    fun captions(info: StreamInfo): List<org.schabi.newpipe.extractor.stream.SubtitlesStream> =
+        info.subtitles.filter { it.deliveryMethod == org.schabi.newpipe.extractor.stream.DeliveryMethod.PROGRESSIVE_HTTP }
+
+    fun source(info: StreamInfo, height: Int?, caption: org.schabi.newpipe.extractor.stream.SubtitlesStream?): MediaSource {
+        val base = baseSource(info, height)
+        if (caption == null) return base
+        val mime = when (caption.format) {
+            MediaFormat.TTML -> androidx.media3.common.MimeTypes.APPLICATION_TTML
+            else -> androidx.media3.common.MimeTypes.TEXT_VTT
+        }
+        val sub = MediaItem.SubtitleConfiguration.Builder(Uri.parse(caption.content))
+            .setMimeType(mime)
+            .setLanguage(caption.languageTag)
+            .setSelectionFlags(androidx.media3.common.C.SELECTION_FLAG_DEFAULT)
+            .build()
+        val subSrc = androidx.media3.exoplayer.source.SingleSampleMediaSource.Factory(dataSourceFactory())
+            .createMediaSource(sub, androidx.media3.common.C.TIME_UNSET)
+        return MergingMediaSource(base, subSrc)
+    }
+
+    private fun baseSource(info: StreamInfo, height: Int?): MediaSource {
         val df = dataSourceFactory()
         val meta = MediaMetadata.Builder()
             .setTitle(info.name)

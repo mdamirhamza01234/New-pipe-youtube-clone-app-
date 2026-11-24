@@ -77,6 +77,12 @@ object PlayerController {
         private set
     var speed by mutableFloatStateOf(1f)
         private set
+    var loop by mutableStateOf(false)
+        private set
+
+    /** Chuna hua caption (null = band). */
+    var caption by mutableStateOf<org.schabi.newpipe.extractor.stream.SubtitlesStream?>(null)
+        private set
 
     /** true = poori screen ka Watch page, false = neeche mini player. */
     var expanded by mutableStateOf(false)
@@ -95,7 +101,7 @@ object PlayerController {
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_ENDED) playNext()
+                if (playbackState == Player.STATE_ENDED && !loop) playNext()
             }
         })
 
@@ -134,6 +140,7 @@ object PlayerController {
         info = null
         error = null
         quality = null
+        caption = null
         loading = true
         expanded = true
         segments = emptyList()
@@ -177,13 +184,29 @@ object PlayerController {
         }
     }
 
+    fun changeLoop(on: Boolean) {
+        loop = on
+        exo.repeatMode = if (on) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+    }
+
+    fun changeCaption(c: org.schabi.newpipe.extractor.stream.SubtitlesStream?) {
+        val i = info ?: return
+        val pos = exo.currentPosition
+        caption = c
+        try {
+            play(i, quality, pos)
+        } catch (e: Throwable) {
+            error = e.message ?: e.javaClass.simpleName
+        }
+    }
+
     fun changeSpeed(s: Float) {
         speed = s
         exo.setPlaybackSpeed(s)
     }
 
     private fun play(i: StreamInfo, height: Int?, startMs: Long) {
-        val src = Playback.source(i, height)
+        val src = Playback.source(i, height, caption)
         exo.setMediaSource(src, startMs)
         exo.prepare()
         exo.setPlaybackSpeed(speed)

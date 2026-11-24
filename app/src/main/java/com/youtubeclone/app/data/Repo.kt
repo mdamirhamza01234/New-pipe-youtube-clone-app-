@@ -54,20 +54,44 @@ object Repo {
         emptyList()
     }
 
-    private fun homeQueries(chip: String): List<String> = when (chip) {
-        "All" -> listOf("NEET 2027 preparation", "NEET physics chemistry biology lecture", "NEET strategy toppers")
-        "NEET" -> listOf("NEET 2027")
-        "PYQ" -> listOf("NEET previous year questions solved")
-        "Mock Test" -> listOf("NEET mock test discussion")
-        "Revision" -> listOf("NEET quick revision")
-        "Motivation" -> listOf("NEET motivation")
-        "Study Tips" -> listOf("NEET study strategy toppers")
-        else -> listOf("NEET $chip")
+    /** Har chip ke liye kai search queries; refresh par inme se alag-alag chune jaate hain. */
+    private fun homePool(chip: String): List<String> {
+        val sfx = listOf("", " lecture", " one shot", " revision", " important questions", " tricks", " 2027")
+        return when (chip) {
+            "All" -> listOf(
+                "NEET 2027 preparation", "NEET physics lecture", "NEET chemistry lecture",
+                "NEET biology lecture", "NEET strategy toppers", "NEET 2027 motivation",
+                "NEET quick revision", "NEET PYQ solved", "NEET NCERT",
+            )
+            "NEET" -> sfx.map { "NEET$it" }
+            "PYQ" -> listOf(
+                "NEET PYQ solved", "NEET previous year questions physics", "NEET PYQ chemistry",
+                "NEET PYQ biology", "NEET 2025 paper solution", "NEET 2024 paper solution",
+            )
+            "Mock Test" -> listOf(
+                "NEET mock test", "NEET mock test discussion", "NEET full test paper solution", "NEET test series analysis",
+            )
+            "Revision" -> listOf(
+                "NEET quick revision", "NEET last minute revision", "NEET one shot revision", "NEET formula revision",
+            )
+            "Motivation" -> listOf(
+                "NEET motivation", "NEET topper story", "NEET droppers motivation", "NEET preparation tips",
+            )
+            "Study Tips" -> listOf(
+                "NEET study strategy toppers", "NEET study plan", "NEET time table", "NEET how to study biology",
+            )
+            else -> sfx.map { "NEET $chip$it" }
+        }
     }
 
-    /** Home feed: sirf normal videos (live aur Shorts nahi), kai searches mila kar. */
-    fun home(chip: String): List<VideoItem> {
-        val qs = homeQueries(chip)
+    /**
+     * Home feed: sirf normal videos (live aur Shorts nahi), kai searches mila kar.
+     * fresh = true (refresh) par alag queries chuni jaati hain, isliye naya content aata hai.
+     */
+    fun home(chip: String, fresh: Boolean = false): List<VideoItem> {
+        val pool = homePool(chip)
+        val n = if (chip == "All") 3 else 2
+        val qs = (if (fresh) pool.shuffled() else pool).take(n)
         val results = arrayOfNulls<List<VideoItem>>(qs.size)
         val threads = qs.mapIndexed { i, q ->
             Thread {
@@ -80,7 +104,8 @@ object Repo {
         val merged = mutableListOf<VideoItem>()
         val longest = lists.maxOfOrNull { it.size } ?: 0
         for (i in 0 until longest) lists.forEach { l -> l.getOrNull(i)?.let { merged.add(it) } }
-        return merged.distinctBy { it.url }.filter { it.duration > 60 }
+        val out = merged.distinctBy { it.url }.filter { it.duration > 60 }
+        return if (fresh) out.shuffled() else out
     }
 
     // ---------- Search ----------
