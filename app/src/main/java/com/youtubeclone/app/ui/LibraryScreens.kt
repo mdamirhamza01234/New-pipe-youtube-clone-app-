@@ -152,10 +152,10 @@ fun LibraryScreen(nav: Nav) {
             Column(Modifier.padding(top = 12.dp)) {
                 Text("Settings", Modifier.padding(horizontal = 16.dp, vertical = 8.dp), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                 SettingRow("Background play", "Screen band ya app minimize hone par bhi audio chale", Store.backgroundPlay) {
-                    Store.setBackgroundPlay(it)
+                    Store.updateBackgroundPlay(it)
                 }
                 SettingRow("Picture-in-picture", "Home dabane par chhoti video window", Store.pip) {
-                    Store.setPip(it)
+                    Store.updatePip(it)
                 }
             }
         }

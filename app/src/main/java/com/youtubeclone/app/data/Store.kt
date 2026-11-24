@@ -33,8 +33,8 @@ object Store {
     }
 
     // ---------- settings ----------
-    fun setBackgroundPlay(v: Boolean) { backgroundPlay = v; sp.edit().putBoolean("bg", v).apply() }
-    fun setPip(v: Boolean) { pip = v; sp.edit().putBoolean("pip", v).apply() }
+    fun updateBackgroundPlay(v: Boolean) { backgroundPlay = v; sp.edit().putBoolean("bg", v).apply() }
+    fun updatePip(v: Boolean) { pip = v; sp.edit().putBoolean("pip", v).apply() }
 
     // ---------- videos ----------
     fun addHistory(v: VideoItem) {

@@ -276,12 +276,12 @@ private fun Details(info: StreamInfo, nav: Nav, modifier: Modifier) {
                     DropdownMenu(expanded = qualityMenu, onDismissRequest = { qualityMenu = false }) {
                         DropdownMenuItem(
                             text = { Text(if (q == null) "Auto (720p) ✓" else "Auto (720p)") },
-                            onClick = { qualityMenu = false; PlayerController.setQuality(null) },
+                            onClick = { qualityMenu = false; PlayerController.changeQuality(null) },
                         )
                         qualities.forEach { h ->
                             DropdownMenuItem(
                                 text = { Text(if (q == h) "${h}p ✓" else "${h}p") },
-                                onClick = { qualityMenu = false; PlayerController.setQuality(h) },
+                                onClick = { qualityMenu = false; PlayerController.changeQuality(h) },
                             )
                         }
                     }

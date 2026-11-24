@@ -117,7 +117,7 @@ object PlayerController {
         open(u)
     }
 
-    fun setQuality(height: Int?) {
+    fun changeQuality(height: Int?) {
         val i = info ?: return
         val pos = exo.currentPosition
         quality = height
