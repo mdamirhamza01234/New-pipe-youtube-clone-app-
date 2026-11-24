@@ -84,10 +84,13 @@ import org.schabi.newpipe.extractor.Page
 object ShortsState {
     val items = androidx.compose.runtime.mutableStateListOf<VideoItem>()
 
+    // Sirf NEET / padhai se jude Shorts; har baar alag order mein, taaki naye aate rahein
     private val queries = listOf(
-        "#shorts", "funny shorts", "music shorts", "gaming shorts",
-        "news shorts", "science shorts", "cooking shorts", "sports shorts",
-    )
+        "NEET shorts", "NEET 2027 shorts", "NEET physics shorts", "NEET chemistry shorts",
+        "NEET biology shorts", "NEET motivation shorts", "NEET study tips shorts",
+        "NEET important questions shorts", "NEET revision shorts", "NCERT biology shorts",
+        "NEET PYQ shorts", "NEET topper shorts",
+    ).shuffled()
     private var qIdx = 0
     private var query: String? = null
     private var next: Page? = null
