@@ -81,6 +81,8 @@ import com.youtubeclone.app.data.Repo
 import com.youtubeclone.app.data.Store
 import com.youtubeclone.app.data.bestUrl
 import com.youtubeclone.app.data.plain
+import com.youtubeclone.app.data.Entry
+import com.youtubeclone.app.data.VideoItem
 import com.youtubeclone.app.data.toVideoItem
 import com.youtubeclone.app.player.Playback
 import com.youtubeclone.app.player.PlayerController
@@ -304,6 +306,32 @@ private fun Details(info: StreamInfo, nav: Nav, modifier: Modifier) {
 
     val me = remember(info) { info.toVideoItem() }
     val related = remember(info) { Repo.related(info) }
+
+    // Related chips: All / More from this story / From <channel>
+    var relTab by remember(info) { mutableStateOf(0) }
+    var storyList by remember(info) { mutableStateOf<List<VideoItem>?>(null) }
+    var chanList by remember(info) { mutableStateOf<List<VideoItem>?>(null) }
+    LaunchedEffect(info, relTab) {
+        try {
+            if (relTab == 1 && storyList == null) {
+                val q = info.name.split("|", "-", "–", "•").first().trim().split(" ").take(7).joinToString(" ")
+                storyList = withContext(Dispatchers.IO) {
+                    Repo.search(q).items.filterIsInstance<Entry.Video>().map { it.v }
+                        .filter { it.url != info.url && it.duration > 60 }
+                }
+            }
+            if (relTab == 2 && chanList == null) {
+                chanList = withContext(Dispatchers.IO) {
+                    Repo.channel(info.uploaderUrl ?: "").videos.filter { it.url != info.url }
+                }
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            if (relTab == 1) storyList = emptyList() else chanList = emptyList()
+        }
+    }
+    val shownRelated = when (relTab) { 1 -> storyList; 2 -> chanList; else -> related } ?: emptyList()
     val qualities = remember(info) { Playback.qualities(info) }
     val liked = Store.liked.any { it.url == me.url }
     val saved = Store.watchLater.any { it.url == me.url }
@@ -488,7 +516,21 @@ private fun Details(info: StreamInfo, nav: Nav, modifier: Modifier) {
         item { Spacer(Modifier.height(8.dp)) }
 
         // Related videos
-        items(related) { v ->
+        item {
+            androidx.compose.foundation.lazy.LazyRow(
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                item { YtChip("All", relTab == 0) { relTab = 0 } }
+                item { YtChip("More from this story", relTab == 1) { relTab = 1 } }
+                item { YtChip("From ${info.uploaderName ?: "channel"}", relTab == 2) { relTab = 2 } }
+            }
+            Spacer(Modifier.height(10.dp))
+            if (relTab != 0 && (if (relTab == 1) storyList else chanList) == null) {
+                Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            }
+        }
+        items(shownRelated) { v ->
             VideoCard(
                 v,
                 onClick = { PlayerController.open(v.url) },
