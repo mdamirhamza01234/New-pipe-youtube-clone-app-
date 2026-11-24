@@ -55,11 +55,14 @@ object Playback {
 
     private fun defaultHeight(q: List<Int>): Int? = q.firstOrNull { it <= 720 } ?: q.lastOrNull()
 
-    private fun dataSourceFactory() = DefaultHttpDataSource.Factory()
-        .setUserAgent(UA)
-        .setAllowCrossProtocolRedirects(true)
-        .setConnectTimeoutMs(15_000)
-        .setReadTimeoutMs(20_000)
+    private fun dataSourceFactory(): androidx.media3.datasource.DataSource.Factory {
+        val http = DefaultHttpDataSource.Factory()
+            .setUserAgent(UA)
+            .setAllowCrossProtocolRedirects(true)
+            .setConnectTimeoutMs(15_000)
+            .setReadTimeoutMs(20_000)
+        return androidx.media3.datasource.DataSource.Factory { ChunkedDataSource(http.createDataSource()) }
+    }
 
     /** Subtitles wale (captions) streams, jo seedhe URL se chalte hain. */
     fun captions(info: StreamInfo): List<org.schabi.newpipe.extractor.stream.SubtitlesStream> =
