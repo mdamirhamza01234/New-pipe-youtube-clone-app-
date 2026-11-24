@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
 /** NewPipeExtractor ko internet se baat karne ke liye OkHttp wala Downloader chahiye. */
 class DownloaderImpl private constructor() : Downloader() {
 
-    private val client: OkHttpClient = OkHttpClient.Builder()
+    val client: OkHttpClient = OkHttpClient.Builder()
         .readTimeout(30, TimeUnit.SECONDS)
         .connectTimeout(20, TimeUnit.SECONDS)
         .build()

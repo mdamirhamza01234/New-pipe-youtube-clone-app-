@@ -2,6 +2,7 @@ package com.youtubeclone.app
 
 import android.app.Application
 import com.youtubeclone.app.data.Store
+import com.youtubeclone.app.download.DownloadCenter
 import com.youtubeclone.app.player.PlayerController
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.localization.ContentCountry
@@ -17,6 +18,7 @@ class App : Application() {
             ContentCountry("IN"),
         )
         Store.init(this)
+        DownloadCenter.init(this)
         PlayerController.init(this)
     }
 }

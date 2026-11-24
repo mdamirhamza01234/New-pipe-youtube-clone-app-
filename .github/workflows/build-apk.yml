@@ -23,11 +23,11 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Build debug APK
-        run: gradle assembleDebug --no-daemon --stacktrace
+      - name: Build release APK
+        run: gradle assembleRelease --no-daemon --stacktrace
 
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk YouTube-Clone.apk
+        run: cp app/build/outputs/apk/release/app-release.apk YouTube-Clone.apk
 
       - uses: actions/upload-artifact@v4
         with:

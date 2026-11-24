@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Subscriptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.youtubeclone.app.data.Repo
+import com.youtubeclone.app.download.DownloadCenter
 import com.youtubeclone.app.data.Store
 import com.youtubeclone.app.data.VideoItem
 import com.youtubeclone.app.player.PlayerController
@@ -144,6 +146,17 @@ fun LibraryScreen(nav: Nav) {
                 }
             }
         }
+        item {
+            Row(
+                Modifier.fillMaxWidth().clickable { nav.push(Screen.Downloads) }.padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Outlined.Download, null)
+                Spacer(Modifier.width(16.dp))
+                Text("Downloads", Modifier.weight(1f), fontSize = 15.sp)
+                Text("${DownloadCenter.items.size}", color = cs.onSurfaceVariant, fontSize = 13.sp)
+            }
+        }
         item { Section("History", Store.history) { nav.push(Screen.VideoList(ListKind.HISTORY)) } }
         item { Section("Watch later", Store.watchLater) { nav.push(Screen.VideoList(ListKind.WATCH_LATER)) } }
         item { Section("Liked videos", Store.liked) { nav.push(Screen.VideoList(ListKind.LIKED)) } }
@@ -156,6 +169,12 @@ fun LibraryScreen(nav: Nav) {
                 }
                 SettingRow("Picture-in-picture", "Home dabane par chhoti video window", Store.pip) {
                     Store.updatePip(it)
+                }
+                SettingRow("SponsorBlock", "Video ke andar ke sponsor / intro / outro hisse apne aap skip", Store.sponsorBlock) {
+                    Store.updateSponsorBlock(it)
+                }
+                SettingRow("Autoplay", "Video khatam hone par agla video apne aap chale", Store.autoplay) {
+                    Store.updateAutoplay(it)
                 }
             }
         }

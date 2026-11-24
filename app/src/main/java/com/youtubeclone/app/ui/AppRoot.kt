@@ -14,9 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
@@ -24,9 +22,11 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Subscriptions
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.PlayCircleOutline
 import androidx.compose.material.icons.outlined.Subscriptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -60,7 +61,11 @@ fun AppRoot() {
         if (Build.VERSION.SDK_INT >= 33) notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
+    // Back: pehle screen se wapas, phir kisi bhi tab se Home par
     BackHandler(enabled = nav.stack.isNotEmpty() && !PlayerController.expanded) { nav.pop() }
+    BackHandler(enabled = nav.stack.isEmpty() && nav.tab != 0 && !PlayerController.expanded) { nav.tab = 0 }
+
+    val onShorts = nav.stack.isEmpty() && nav.tab == 1
 
     Surface(Modifier.fillMaxSize(), color = cs.background, contentColor = cs.onBackground) {
         Box(Modifier.fillMaxSize()) {
@@ -69,7 +74,7 @@ fun AppRoot() {
                 contentColor = cs.onBackground,
                 bottomBar = {
                     Column {
-                        if (PlayerController.url != null && !PlayerController.expanded) {
+                        if (PlayerController.url != null && !PlayerController.expanded && !onShorts) {
                             MiniPlayer(
                                 if (nav.stack.isEmpty()) Modifier else Modifier.navigationBarsPadding(),
                             )
@@ -82,12 +87,14 @@ fun AppRoot() {
                     when (val top = nav.stack.lastOrNull()) {
                         null -> when (nav.tab) {
                             0 -> HomeScreen(nav, homeList)
-                            1 -> SubscriptionsScreen(nav)
+                            1 -> ShortsScreen()
+                            2 -> SubscriptionsScreen(nav)
                             else -> LibraryScreen(nav)
                         }
                         is Screen.Search -> SearchScreen(nav)
                         is Screen.Channel -> ChannelScreen(top.url, nav)
                         is Screen.VideoList -> VideoListScreen(top.kind, nav)
+                        is Screen.Downloads -> DownloadsScreen(nav)
                     }
                 }
             }
@@ -103,7 +110,7 @@ fun AppRoot() {
 private fun BottomBar(nav: Nav) {
     val cs = MaterialTheme.colorScheme
     val colors = NavigationBarItemDefaults.colors(
-        indicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+        indicatorColor = Color.Transparent,
         selectedIconColor = cs.onBackground,
         selectedTextColor = cs.onBackground,
         unselectedIconColor = cs.onBackground,
@@ -120,14 +127,21 @@ private fun BottomBar(nav: Nav) {
         NavigationBarItem(
             selected = nav.tab == 1,
             onClick = { nav.tab = 1 },
-            icon = { Icon(if (nav.tab == 1) Icons.Filled.Subscriptions else Icons.Outlined.Subscriptions, "Subscriptions") },
-            label = { Text("Subscriptions", fontSize = 10.sp) },
+            icon = { Icon(if (nav.tab == 1) Icons.Filled.PlayCircle else Icons.Outlined.PlayCircleOutline, "Shorts") },
+            label = { Text("Shorts", fontSize = 10.sp) },
             colors = colors,
         )
         NavigationBarItem(
             selected = nav.tab == 2,
             onClick = { nav.tab = 2 },
-            icon = { Icon(if (nav.tab == 2) Icons.Filled.AccountCircle else Icons.Outlined.AccountCircle, "You") },
+            icon = { Icon(if (nav.tab == 2) Icons.Filled.Subscriptions else Icons.Outlined.Subscriptions, "Subscriptions") },
+            label = { Text("Subscriptions", fontSize = 10.sp) },
+            colors = colors,
+        )
+        NavigationBarItem(
+            selected = nav.tab == 3,
+            onClick = { nav.tab = 3 },
+            icon = { Icon(if (nav.tab == 3) Icons.Filled.AccountCircle else Icons.Outlined.AccountCircle, "You") },
             label = { Text("You", fontSize = 10.sp) },
             colors = colors,
         )

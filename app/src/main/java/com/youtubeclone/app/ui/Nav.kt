@@ -16,10 +16,11 @@ sealed interface Screen {
     data object Search : Screen
     data class Channel(val url: String) : Screen
     data class VideoList(val kind: ListKind) : Screen
+    data object Downloads : Screen
 }
 
 class Nav {
-    /** 0 = Home, 1 = Subscriptions, 2 = You */
+    /** 0 = Home, 1 = Shorts, 2 = Subscriptions, 3 = You */
     var tab by mutableIntStateOf(0)
 
     /** Khaali = tab screens dikhte hain. */

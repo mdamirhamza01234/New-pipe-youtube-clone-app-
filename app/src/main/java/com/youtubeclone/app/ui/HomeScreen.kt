@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
@@ -54,6 +55,7 @@ fun HomeScreen(nav: Nav, listState: LazyListState) {
         ) {
             YtLogo()
             Spacer(Modifier.weight(1f))
+            IconButton(onClick = { nav.push(Screen.Downloads) }) { Icon(Icons.Outlined.Download, "Downloads") }
             IconButton(onClick = { Cache.home.clear(); retry++ }) { Icon(Icons.Outlined.Refresh, "Refresh") }
             IconButton(onClick = { nav.push(Screen.Search) }) { Icon(Icons.Outlined.Search, "Search") }
         }

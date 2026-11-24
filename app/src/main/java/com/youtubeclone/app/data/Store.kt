@@ -21,6 +21,10 @@ object Store {
         private set
     var pip by mutableStateOf(true)
         private set
+    var sponsorBlock by mutableStateOf(true)
+        private set
+    var autoplay by mutableStateOf(true)
+        private set
 
     fun init(ctx: Context) {
         sp = ctx.getSharedPreferences("store", Context.MODE_PRIVATE)
@@ -30,11 +34,15 @@ object Store {
         subs.addAll(loadChannels())
         backgroundPlay = sp.getBoolean("bg", true)
         pip = sp.getBoolean("pip", true)
+        sponsorBlock = sp.getBoolean("sponsor", true)
+        autoplay = sp.getBoolean("autoplay", true)
     }
 
     // ---------- settings ----------
     fun updateBackgroundPlay(v: Boolean) { backgroundPlay = v; sp.edit().putBoolean("bg", v).apply() }
     fun updatePip(v: Boolean) { pip = v; sp.edit().putBoolean("pip", v).apply() }
+    fun updateSponsorBlock(v: Boolean) { sponsorBlock = v; sp.edit().putBoolean("sponsor", v).apply() }
+    fun updateAutoplay(v: Boolean) { autoplay = v; sp.edit().putBoolean("autoplay", v).apply() }
 
     // ---------- videos ----------
     fun addHistory(v: VideoItem) {

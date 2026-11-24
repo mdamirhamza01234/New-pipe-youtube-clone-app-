@@ -4,15 +4,20 @@ package com.youtubeclone.app.player
 
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import com.youtubeclone.app.data.Cache
+import com.youtubeclone.app.data.Extras
+import com.youtubeclone.app.data.Repo
 import com.youtubeclone.app.data.Store
 import com.youtubeclone.app.data.toVideoItem
 import kotlinx.coroutines.CancellationException
@@ -20,6 +25,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.schabi.newpipe.extractor.stream.StreamInfo
@@ -37,16 +43,25 @@ object PlayerHolder {
                 .build(),
             true,
         )
+        // Bada buffer = kam rukna, smooth playback
+        .setLoadControl(
+            DefaultLoadControl.Builder()
+                .setBufferDurationsMs(30_000, 90_000, 1_000, 2_500)
+                .build()
+        )
         .build()
         .also { player = it }
 }
 
-/** Abhi kaunsa video chal raha hai, uski state + open/close/quality ka logic. */
+/** Abhi kaunsa video chal raha hai, uski state + open/close/quality/speed ka logic. */
 object PlayerController {
     private lateinit var app: Context
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var job: Job? = null
     private var generation = 0
+
+    /** SponsorBlock: skip karne wale (start, end) milliseconds. */
+    private var segments: List<Pair<Long, Long>> = emptyList()
 
     var url by mutableStateOf<String?>(null)
         private set
@@ -59,6 +74,8 @@ object PlayerController {
     var quality by mutableStateOf<Int?>(null)
         private set
     var isPlaying by mutableStateOf(false)
+        private set
+    var speed by mutableFloatStateOf(1f)
         private set
 
     /** true = poori screen ka Watch page, false = neeche mini player. */
@@ -76,7 +93,34 @@ object PlayerController {
             override fun onPlayerError(error: PlaybackException) {
                 this@PlayerController.error = "Playback error (${error.errorCodeName}). Dobara try karo ya quality badlo."
             }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED) playNext()
+            }
         })
+
+        // SponsorBlock: har 0.4 second mein dekho ki sponsor segment mein to nahi
+        scope.launch {
+            while (true) {
+                delay(400)
+                if (segments.isNotEmpty() && Store.sponsorBlock && exo.isPlaying) {
+                    val p = exo.currentPosition
+                    val hit = segments.firstOrNull { p >= it.first && p < it.second - 300 }
+                    if (hit != null) {
+                        exo.seekTo(hit.second)
+                        Toast.makeText(app, "Sponsor segment skip kiya", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
+    /** Video khatam hone par agla related video apne aap chalao. */
+    private fun playNext() {
+        if (!Store.autoplay) return
+        val i = info ?: return
+        val next = Repo.related(i).firstOrNull { it.url != i.url } ?: return
+        open(next.url)
     }
 
     fun open(rawUrl: String) {
@@ -92,6 +136,7 @@ object PlayerController {
         quality = null
         loading = true
         expanded = true
+        segments = emptyList()
         exo.stop()
         exo.clearMediaItems()
 
@@ -101,6 +146,10 @@ object PlayerController {
                 info = i
                 Store.addHistory(i.toVideoItem())
                 play(i, null, 0L)
+                if (Store.sponsorBlock) {
+                    val s = withContext(Dispatchers.IO) { Extras.sponsorSegments(i.id) }
+                    if (my == generation) segments = s
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
@@ -128,10 +177,16 @@ object PlayerController {
         }
     }
 
+    fun changeSpeed(s: Float) {
+        speed = s
+        exo.setPlaybackSpeed(s)
+    }
+
     private fun play(i: StreamInfo, height: Int?, startMs: Long) {
         val src = Playback.source(i, height)
         exo.setMediaSource(src, startMs)
         exo.prepare()
+        exo.setPlaybackSpeed(speed)
         exo.playWhenReady = true
         try {
             app.startService(Intent(app, PlaybackService::class.java))
@@ -143,6 +198,7 @@ object PlayerController {
     fun close() {
         job?.cancel()
         generation++
+        segments = emptyList()
         exo.stop()
         exo.clearMediaItems()
         url = null

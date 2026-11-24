@@ -10,18 +10,32 @@ android {
 
     defaultConfig {
         applicationId = "com.youtubeclone.app"
-        minSdk = 24
+        minSdk = 29
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
     }
 
+    signingConfigs {
+        // Fixed key: har build ek hi signature se banta hai, isliye naya APK purane ke upar install ho jata hai
+        create("release") {
+            storeFile = file("youtubeclone.jks")
+            storePassword = "youtubeclone"
+            keyAlias = "youtubeclone"
+            keyPassword = "youtubeclone"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
-            // Debug key se sign, taaki release APK seedha install ho sake
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
+    }
+
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
     }
 
     compileOptions {

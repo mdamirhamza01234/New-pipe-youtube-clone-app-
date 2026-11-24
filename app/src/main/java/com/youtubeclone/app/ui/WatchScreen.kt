@@ -2,7 +2,11 @@
 
 package com.youtubeclone.app.ui
 
+import android.content.Context
 import android.content.pm.ActivityInfo
+import android.media.AudioManager
+import android.view.GestureDetector
+import android.view.MotionEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,6 +34,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Speed
+import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material.icons.outlined.WatchLater
@@ -67,6 +73,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.ui.PlayerView
 import com.youtubeclone.app.data.ChannelItem
 import com.youtubeclone.app.data.CommentItem
+import com.youtubeclone.app.data.Extras
 import com.youtubeclone.app.data.Repo
 import com.youtubeclone.app.data.Store
 import com.youtubeclone.app.data.bestUrl
@@ -74,7 +81,10 @@ import com.youtubeclone.app.data.plain
 import com.youtubeclone.app.data.toVideoItem
 import com.youtubeclone.app.player.Playback
 import com.youtubeclone.app.player.PlayerController
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.schabi.newpipe.extractor.stream.StreamInfo
 
@@ -118,6 +128,16 @@ fun WatchScreen(nav: Nav) {
         }
     }
 
+    // Gesture ka chhota message (+10s, volume, brightness)
+    var hud by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(hud) {
+        if (hud != null) {
+            delay(700)
+            hud = null
+        }
+    }
+    val showHud: (String) -> Unit = { hud = it }
+
     Surface(Modifier.fillMaxSize(), color = cs.background, contentColor = cs.onBackground) {
         Column(
             Modifier
@@ -136,12 +156,91 @@ fun WatchScreen(nav: Nav) {
                             setShowPreviousButton(false)
                             setShutterBackgroundColor(android.graphics.Color.BLACK)
                             setFullscreenButtonClickListener { UiFlags.fullscreen = it }
+
+                            // YouTube jaise gestures: double-tap seek, left swipe = brightness, right swipe = volume
+                            val am = c.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                            var volF = 0f
+                            var brF = 0.5f
+                            var mode = 0 // 1 = volume, 2 = brightness, 3 = ignore
+                            val detector = GestureDetector(c, object : GestureDetector.SimpleOnGestureListener() {
+                                override fun onDown(e: MotionEvent): Boolean {
+                                    mode = 0
+                                    volF = am.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat()
+                                    val b = activity?.window?.attributes?.screenBrightness ?: -1f
+                                    brF = if (b < 0f) 0.5f else b
+                                    return true
+                                }
+
+                                override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                                    if (isControllerFullyVisible) hideController() else showController()
+                                    return true
+                                }
+
+                                override fun onDoubleTap(e: MotionEvent): Boolean {
+                                    val p = PlayerController.exo
+                                    when {
+                                        e.x < width / 3f -> {
+                                            p.seekTo((p.currentPosition - 10_000).coerceAtLeast(0))
+                                            showHud("⏪ -10s")
+                                        }
+                                        e.x > width * 2f / 3f -> {
+                                            p.seekTo(p.currentPosition + 10_000)
+                                            showHud("+10s ⏩")
+                                        }
+                                        else -> if (p.isPlaying) p.pause() else p.play()
+                                    }
+                                    return true
+                                }
+
+                                override fun onScroll(e1: MotionEvent?, e2: MotionEvent, dx: Float, dy: Float): Boolean {
+                                    if (e1 == null) return false
+                                    if (mode == 0) {
+                                        mode = if (abs(dy) > abs(dx) * 1.5f) {
+                                            if (e1.x < width / 2f) 2 else 1
+                                        } else if (abs(dx) > abs(dy)) 3 else 0
+                                    }
+                                    when (mode) {
+                                        1 -> {
+                                            val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                                            volF = (volF + dy / height * max * 1.6f).coerceIn(0f, max.toFloat())
+                                            am.setStreamVolume(AudioManager.STREAM_MUSIC, volF.roundToInt(), 0)
+                                            showHud("🔊 ${(volF / max * 100).roundToInt()}%")
+                                        }
+                                        2 -> {
+                                            brF = (brF + dy / height * 1.4f).coerceIn(0.02f, 1f)
+                                            activity?.window?.let { w ->
+                                                val lp = w.attributes
+                                                lp.screenBrightness = brF
+                                                w.attributes = lp
+                                            }
+                                            showHud("🔆 ${(brF * 100).roundToInt()}%")
+                                        }
+                                    }
+                                    return mode == 1 || mode == 2
+                                }
+                            })
+                            setOnTouchListener { _, ev ->
+                                detector.onTouchEvent(ev)
+                                true
+                            }
                         }
                     },
                     update = { it.useController = !inPip },
                     onRelease = { it.player = null },
                     modifier = Modifier.fillMaxSize(),
                 )
+
+                hud?.let { t ->
+                    Text(
+                        t,
+                        Modifier
+                            .align(Alignment.Center)
+                            .background(Color(0x99000000), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                        color = Color.White,
+                        fontSize = 16.sp,
+                    )
+                }
 
                 if (PlayerController.loading && info == null) {
                     CircularProgressIndicator(Modifier.align(Alignment.Center), color = Color.White)
@@ -175,6 +274,8 @@ private fun Details(info: StreamInfo, nav: Nav, modifier: Modifier) {
     var showDownload by remember(info) { mutableStateOf(false) }
     var qualityMenu by remember(info) { mutableStateOf(false) }
     var commentsOpen by remember(info) { mutableStateOf(false) }
+    var speedMenu by remember { mutableStateOf(false) }
+    var dislikes by remember(info) { mutableStateOf<Long?>(null) }
     var comments by remember(info) { mutableStateOf<List<CommentItem>?>(null) }
 
     val me = remember(info) { info.toVideoItem() }
@@ -183,6 +284,10 @@ private fun Details(info: StreamInfo, nav: Nav, modifier: Modifier) {
     val liked = Store.liked.any { it.url == me.url }
     val saved = Store.watchLater.any { it.url == me.url }
     val subscribed = Store.isSubscribed(info.uploaderUrl ?: "")
+
+    LaunchedEffect(info) {
+        dislikes = withContext(Dispatchers.IO) { Extras.dislikes(info.id) }
+    }
 
     LaunchedEffect(commentsOpen) {
         if (commentsOpen && comments == null) {
@@ -263,6 +368,7 @@ private fun Details(info: StreamInfo, nav: Nav, modifier: Modifier) {
                     if (info.likeCount >= 0) compact(info.likeCount) else "Like",
                     active = liked,
                 ) { Store.toggleLike(me) }
+                Pill(Icons.Outlined.ThumbDown, dislikes?.let { compact(it) } ?: "Dislike") { }
                 Pill(Icons.Outlined.Share, "Share") { shareUrl(ctx, info.url) }
                 Pill(Icons.Outlined.Download, "Download") { showDownload = true }
                 Pill(
@@ -270,6 +376,18 @@ private fun Details(info: StreamInfo, nav: Nav, modifier: Modifier) {
                     "Save",
                     active = saved,
                 ) { Store.toggleWatchLater(me) }
+                Box {
+                    val sp = PlayerController.speed
+                    Pill(Icons.Outlined.Speed, if (sp == 1f) "Speed" else "${sp}x") { speedMenu = true }
+                    DropdownMenu(expanded = speedMenu, onDismissRequest = { speedMenu = false }) {
+                        listOf(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f).forEach { s ->
+                            DropdownMenuItem(
+                                text = { Text(if (s == sp) "${s}x ✓" else "${s}x") },
+                                onClick = { speedMenu = false; PlayerController.changeSpeed(s) },
+                            )
+                        }
+                    }
+                }
                 Box {
                     val q = PlayerController.quality
                     Pill(Icons.Outlined.Settings, if (q != null) "${q}p" else "Quality") { qualityMenu = true }
@@ -365,30 +483,5 @@ private fun Details(info: StreamInfo, nav: Nav, modifier: Modifier) {
         }
     }
 
-    if (showDownload) {
-        val options = remember(info) { Playback.downloadOptions(info) }
-        AlertDialog(
-            onDismissRequest = { showDownload = false },
-            title = { Text("Download") },
-            text = {
-                if (options.isEmpty()) {
-                    Text("Is video ke liye koi download option nahi mila.")
-                } else {
-                    Column(Modifier.verticalScroll(rememberScrollState())) {
-                        options.forEach { o ->
-                            Text(
-                                o.label,
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable { showDownload = false; Playback.download(ctx, o) }
-                                    .padding(vertical = 12.dp),
-                                fontSize = 15.sp,
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = { TextButton(onClick = { showDownload = false }) { Text("Close") } },
-        )
-    }
+    if (showDownload) DownloadDialog(info) { showDownload = false }
 }
