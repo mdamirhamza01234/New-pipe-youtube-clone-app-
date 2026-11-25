@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,6 +38,9 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.ClosedCaption
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material.icons.outlined.Share
@@ -142,6 +147,7 @@ fun WatchScreen(nav: Nav) {
         }
     }
     val showHud: (String) -> Unit = { hud = it }
+    var controllerVisible by remember { mutableStateOf(true) }
 
     Surface(Modifier.fillMaxSize(), color = cs.background, contentColor = cs.onBackground) {
         Column(
@@ -163,6 +169,16 @@ fun WatchScreen(nav: Nav) {
                             setShowFastForwardButton(false)
                             setShutterBackgroundColor(android.graphics.Color.BLACK)
                             setFullscreenButtonClickListener { UiFlags.fullscreen = it }
+                            setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { v ->
+                                controllerVisible = v == android.view.View.VISIBLE
+                            })
+                            // YouTube jaisa laal seekbar
+                            findViewById<androidx.media3.ui.DefaultTimeBar>(androidx.media3.ui.R.id.exo_progress)?.apply {
+                                setPlayedColor(0xFFFF0000.toInt())
+                                setScrubberColor(0xFFFF0000.toInt())
+                                setBufferedColor(0x88FFFFFF.toInt())
+                                setUnplayedColor(0x44FFFFFF.toInt())
+                            }
 
                             // YouTube jaise gestures: double-tap seek, left swipe = brightness, right swipe = volume
                             val am = c.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -247,13 +263,42 @@ fun WatchScreen(nav: Nav) {
                     }
                 }
 
-                // Settings (gear) icon
-                if (!compact && !inPip && info != null) {
-                    var settings by remember { mutableStateOf(false) }
-                    IconButton(onClick = { settings = true }, modifier = Modifier.align(Alignment.TopEnd)) {
-                        Icon(Icons.Outlined.Settings, "Settings", Modifier.size(26.dp), tint = Color.White)
+                // YouTube jaise controls: previous / next, autoplay toggle, CC, settings
+                if (!compact && !inPip && info != null && controllerVisible) {
+                    var settings by remember { mutableStateOf<String?>(null) }
+                    Row(
+                        Modifier.align(Alignment.TopEnd),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        androidx.compose.material3.Switch(
+                            checked = Store.autoplay,
+                            onCheckedChange = { Store.updateAutoplay(it) },
+                            modifier = Modifier.scale(0.7f),
+                        )
+                        IconButton(onClick = { settings = "captions" }) {
+                            Icon(Icons.Outlined.ClosedCaption, "Captions", Modifier.size(26.dp), tint = Color.White)
+                        }
+                        IconButton(onClick = { settings = "main" }) {
+                            Icon(Icons.Outlined.Settings, "Settings", Modifier.size(26.dp), tint = Color.White)
+                        }
                     }
-                    if (settings) PlayerSettingsSheet(info) { settings = false }
+                    IconButton(
+                        onClick = { PlayerController.previous() },
+                        enabled = PlayerController.backCount > 0,
+                        modifier = Modifier.align(Alignment.Center).offset(x = (-96).dp).size(48.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.SkipPrevious, "Previous", Modifier.size(34.dp),
+                            tint = Color.White.copy(alpha = if (PlayerController.backCount > 0) 1f else 0.35f),
+                        )
+                    }
+                    IconButton(
+                        onClick = { PlayerController.next() },
+                        modifier = Modifier.align(Alignment.Center).offset(x = 96.dp).size(48.dp),
+                    ) {
+                        Icon(Icons.Filled.SkipNext, "Next", Modifier.size(34.dp), tint = Color.White)
+                    }
+                    settings?.let { p -> PlayerSettingsSheet(info, p) { settings = null } }
                 }
 
                 hud?.let { t ->

@@ -57,8 +57,8 @@ private fun SheetRow(icon: ImageVector, title: String, value: String, trailing: 
 
 /** YouTube jaisa settings sheet: Quality, Speed, Captions, Loop, Stats for nerds. */
 @Composable
-fun PlayerSettingsSheet(info: StreamInfo, onDismiss: () -> Unit) {
-    var page by remember { mutableStateOf("main") }
+fun PlayerSettingsSheet(info: StreamInfo, initialPage: String = "main", onDismiss: () -> Unit) {
+    var page by remember { mutableStateOf(initialPage) }
     var speedDlg by remember { mutableStateOf(false) }
     var stats by remember { mutableStateOf(false) }
     val qualities = remember(info) { Playback.qualities(info) }

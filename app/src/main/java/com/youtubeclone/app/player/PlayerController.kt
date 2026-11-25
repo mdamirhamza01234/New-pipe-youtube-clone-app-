@@ -124,16 +124,31 @@ object PlayerController {
     /** Video khatam hone par agla related video apne aap chalao. */
     private fun playNext() {
         if (!Store.autoplay) return
+        next()
+    }
+
+    private val stack = ArrayDeque<String>()
+    var backCount by mutableStateOf(0)
+        private set
+
+    fun previous() {
+        val u = stack.removeLastOrNull() ?: return
+        backCount = stack.size
+        open(u, false)
+    }
+
+    fun next() {
         val i = info ?: return
         val next = Repo.related(i).firstOrNull { it.url != i.url } ?: return
         open(next.url)
     }
 
-    fun open(rawUrl: String) {
+    fun open(rawUrl: String, pushCurrent: Boolean = true) {
         if (rawUrl == url && (info != null || loading)) {
             expanded = true
             return
         }
+        if (pushCurrent) url?.let { stack.addLast(it); backCount = stack.size }
         job?.cancel()
         val my = ++generation
         url = rawUrl
@@ -219,6 +234,8 @@ object PlayerController {
     }
 
     fun close() {
+        stack.clear()
+        backCount = 0
         job?.cancel()
         generation++
         segments = emptyList()
