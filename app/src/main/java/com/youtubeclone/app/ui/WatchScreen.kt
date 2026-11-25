@@ -172,6 +172,29 @@ fun WatchScreen(nav: Nav) {
                             setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { v ->
                                 controllerVisible = v == android.view.View.VISIBLE
                             })
+                            // Timer par tap: poora time <-> bacha hua time (-3:36)
+                            val posV = findViewById<android.widget.TextView>(androidx.media3.ui.R.id.exo_position)
+                            val durV = findViewById<android.widget.TextView>(androidx.media3.ui.R.id.exo_duration)
+                            var remaining = false
+                            fun refresh() {
+                                val p = PlayerController.exo
+                                val d = p.duration
+                                if (durV != null && d > 0) {
+                                    durV.text = if (remaining) "-" + formatDuration(((d - p.currentPosition).coerceAtLeast(0)) / 1000)
+                                    else formatDuration(d / 1000)
+                                }
+                            }
+                            val toggle = android.view.View.OnClickListener { remaining = !remaining; refresh() }
+                            durV?.setOnClickListener(toggle)
+                            posV?.setOnClickListener(toggle)
+                            val ticker = object : Runnable {
+                                override fun run() {
+                                    if (!isAttachedToWindow) return
+                                    if (remaining) refresh()
+                                    postDelayed(this, 500)
+                                }
+                            }
+                            post(ticker)
                             // YouTube jaisa laal seekbar
                             findViewById<androidx.media3.ui.DefaultTimeBar>(androidx.media3.ui.R.id.exo_progress)?.apply {
                                 setPlayedColor(0xFFFF0000.toInt())
@@ -356,11 +379,22 @@ private fun Details(info: StreamInfo, nav: Nav, modifier: Modifier) {
     var relTab by remember(info) { mutableStateOf(0) }
     var storyList by remember(info) { mutableStateOf<List<VideoItem>?>(null) }
     var chanList by remember(info) { mutableStateOf<List<VideoItem>?>(null) }
+    val tagChips = remember(info) {
+        info.tags.map { it.trim() }.filter { it.length in 3..24 }.distinctBy { it.lowercase() }.take(4)
+    }
+    var tagList by remember(info, relTab) { mutableStateOf<List<VideoItem>?>(null) }
     LaunchedEffect(info, relTab) {
         try {
             if (relTab == 1 && storyList == null) {
                 val q = info.name.split("|", "-", "–", "•").first().trim().split(" ").take(7).joinToString(" ")
                 storyList = withContext(Dispatchers.IO) {
+                    Repo.search(q).items.filterIsInstance<Entry.Video>().map { it.v }
+                        .filter { it.url != info.url && it.duration > 60 }
+                }
+            }
+            if (relTab >= 10 && tagList == null) {
+                val q = tagChips.getOrNull(relTab - 10)
+                tagList = if (q == null) emptyList() else withContext(Dispatchers.IO) {
                     Repo.search(q).items.filterIsInstance<Entry.Video>().map { it.v }
                         .filter { it.url != info.url && it.duration > 60 }
                 }
@@ -373,10 +407,15 @@ private fun Details(info: StreamInfo, nav: Nav, modifier: Modifier) {
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Throwable) {
-            if (relTab == 1) storyList = emptyList() else chanList = emptyList()
+            if (relTab >= 10) tagList = emptyList() else if (relTab == 1) storyList = emptyList() else chanList = emptyList()
         }
     }
-    val shownRelated = when (relTab) { 1 -> storyList; 2 -> chanList; else -> related } ?: emptyList()
+    val shownRelated = when {
+        relTab >= 10 -> tagList
+        relTab == 1 -> storyList
+        relTab == 2 -> chanList
+        else -> related
+    } ?: emptyList()
     val qualities = remember(info) { Playback.qualities(info) }
     val liked = Store.liked.any { it.url == me.url }
     val saved = Store.watchLater.any { it.url == me.url }
@@ -569,9 +608,10 @@ private fun Details(info: StreamInfo, nav: Nav, modifier: Modifier) {
                 item { YtChip("All", relTab == 0) { relTab = 0 } }
                 item { YtChip("More from this story", relTab == 1) { relTab = 1 } }
                 item { YtChip("From ${info.uploaderName ?: "channel"}", relTab == 2) { relTab = 2 } }
+                items(tagChips.size) { i -> YtChip(tagChips[i], relTab == 10 + i) { relTab = 10 + i } }
             }
             Spacer(Modifier.height(10.dp))
-            if (relTab != 0 && (if (relTab == 1) storyList else chanList) == null) {
+            if (relTab != 0 && (when { relTab >= 10 -> tagList; relTab == 1 -> storyList; else -> chanList }) == null) {
                 Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             }
         }
