@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ClosedCaption
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.RecordVoiceOver
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Speed
@@ -96,6 +97,12 @@ fun PlayerSettingsSheet(info: StreamInfo, initialPage: String = "main", onDismis
                     SheetRow(Icons.Outlined.Settings, "Quality", if (q != null) "${q}p" else "Auto") { page = "quality" }
                     SheetRow(Icons.Outlined.Speed, "Playback speed", speedLabel(PlayerController.speed)) { speedDlg = true }
                     SheetRow(Icons.Outlined.ClosedCaption, "Captions", PlayerController.caption?.displayLanguageName ?: "Off") { page = "captions" }
+                    if (tracks.isNotEmpty()) {
+                        SheetRow(
+                            Icons.Outlined.RecordVoiceOver, "Audio track",
+                            tracks.firstOrNull { it.first == curTrack }?.second ?: "Default",
+                        ) { page = "audio" }
+                    }
                     SheetRow(
                         Icons.Outlined.Repeat, "Loop video", "",
                         trailing = { Switch(PlayerController.loop, { PlayerController.changeLoop(it) }) },
