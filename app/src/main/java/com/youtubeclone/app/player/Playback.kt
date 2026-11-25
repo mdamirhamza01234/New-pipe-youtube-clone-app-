@@ -68,8 +68,29 @@ object Playback {
     fun captions(info: StreamInfo): List<org.schabi.newpipe.extractor.stream.SubtitlesStream> =
         info.subtitles.filter { it.deliveryMethod == org.schabi.newpipe.extractor.stream.DeliveryMethod.PROGRESSIVE_HTTP }
 
-    fun source(info: StreamInfo, height: Int?, caption: org.schabi.newpipe.extractor.stream.SubtitlesStream? = null): MediaSource {
-        val base = baseSource(info, height)
+    /** Alag-alag language ke audio tracks (id -> naam). Ek hi ho to khali. */
+    fun audioTracks(info: StreamInfo): List<Pair<String, String>> {
+        val l = info.audioStreams.progA().filter { it.audioTrackId != null }
+            .distinctBy { it.audioTrackId }
+            .map { s ->
+                val name = s.audioTrackName ?: s.audioLocale?.displayLanguage ?: s.audioTrackId!!
+                val orig = if (s.audioTrackType == org.schabi.newpipe.extractor.stream.AudioTrackType.ORIGINAL && !name.contains("original", true)) " (original)" else ""
+                s.audioTrackId!! to name + orig
+            }
+        return if (l.size > 1) l else emptyList()
+    }
+
+    /** Default: original audio track (na ki koi bhi dubbed language). */
+    fun defaultAudioTrack(info: StreamInfo): String? =
+        info.audioStreams.progA().firstOrNull { it.audioTrackType == org.schabi.newpipe.extractor.stream.AudioTrackType.ORIGINAL }?.audioTrackId
+
+    fun source(
+        info: StreamInfo,
+        height: Int?,
+        caption: org.schabi.newpipe.extractor.stream.SubtitlesStream? = null,
+        audioTrack: String? = null,
+    ): MediaSource {
+        val base = baseSource(info, height, audioTrack ?: defaultAudioTrack(info))
         if (caption == null) return base
         val mime = when (caption.format) {
             MediaFormat.TTML -> androidx.media3.common.MimeTypes.APPLICATION_TTML
@@ -85,7 +106,7 @@ object Playback {
         return MergingMediaSource(base, subSrc)
     }
 
-    private fun baseSource(info: StreamInfo, height: Int?): MediaSource {
+    private fun baseSource(info: StreamInfo, height: Int?, track: String?): MediaSource {
         val df = dataSourceFactory()
         val meta = MediaMetadata.Builder()
             .setTitle(info.name)
@@ -105,7 +126,8 @@ object Playback {
 
         val muxed = info.videoStreams.prog()
         val videoOnly = info.videoOnlyStreams.prog()
-        val audio = info.audioStreams.progA()
+        val allAudio = info.audioStreams.progA()
+        val audio = if (track != null) allAudio.filter { it.audioTrackId == track }.ifEmpty { allAudio } else allAudio
         val bestAudio = audio.filter { it.format == MediaFormat.M4A }.maxByOrNull { it.averageBitrate }
             ?: audio.maxByOrNull { it.averageBitrate }
 

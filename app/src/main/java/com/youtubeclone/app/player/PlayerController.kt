@@ -80,6 +80,10 @@ object PlayerController {
     var loop by mutableStateOf(false)
         private set
 
+    /** Chuna hua audio track id (null = original/default). */
+    var audioTrack by mutableStateOf<String?>(null)
+        private set
+
     /** Chuna hua caption (null = band). */
     var caption by mutableStateOf<org.schabi.newpipe.extractor.stream.SubtitlesStream?>(null)
         private set
@@ -156,6 +160,7 @@ object PlayerController {
         error = null
         quality = null
         caption = null
+        audioTrack = null
         loading = true
         expanded = true
         segments = emptyList()
@@ -199,6 +204,17 @@ object PlayerController {
         }
     }
 
+    fun changeAudioTrack(id: String?) {
+        val i = info ?: return
+        val pos = exo.currentPosition
+        audioTrack = id
+        try {
+            play(i, quality, pos)
+        } catch (e: Throwable) {
+            error = e.message ?: e.javaClass.simpleName
+        }
+    }
+
     fun changeLoop(on: Boolean) {
         loop = on
         exo.repeatMode = if (on) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
@@ -221,7 +237,7 @@ object PlayerController {
     }
 
     private fun play(i: StreamInfo, height: Int?, startMs: Long) {
-        val src = Playback.source(i, height, caption)
+        val src = Playback.source(i, height, caption, audioTrack)
         exo.setMediaSource(src, startMs)
         exo.prepare()
         exo.setPlaybackSpeed(speed)

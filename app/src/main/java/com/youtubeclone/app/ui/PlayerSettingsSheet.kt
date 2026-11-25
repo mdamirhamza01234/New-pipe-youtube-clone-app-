@@ -63,6 +63,8 @@ fun PlayerSettingsSheet(info: StreamInfo, initialPage: String = "main", onDismis
     var stats by remember { mutableStateOf(false) }
     val qualities = remember(info) { Playback.qualities(info) }
     val captions = remember(info) { Playback.captions(info) }
+    val tracks = remember(info) { Playback.audioTracks(info) }
+    val curTrack = PlayerController.audioTrack ?: remember(info) { Playback.defaultAudioTrack(info) }
     val q = PlayerController.quality
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -73,6 +75,12 @@ fun PlayerSettingsSheet(info: StreamInfo, initialPage: String = "main", onDismis
                     OptionRow("Auto (best)", q == null) { PlayerController.changeQuality(null); onDismiss() }
                     qualities.forEach { h ->
                         OptionRow("${h}p", q == h) { PlayerController.changeQuality(h); onDismiss() }
+                    }
+                }
+                "audio" -> {
+                    Text("Audio track", Modifier.padding(20.dp), fontSize = 18.sp)
+                    tracks.forEach { (id, name) ->
+                        OptionRow(name, curTrack == id) { PlayerController.changeAudioTrack(id); onDismiss() }
                     }
                 }
                 "captions" -> {
