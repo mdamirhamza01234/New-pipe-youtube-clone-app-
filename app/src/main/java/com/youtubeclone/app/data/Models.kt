@@ -8,6 +8,7 @@ data class VideoItem(
     val title: String,
     val uploader: String = "",
     val uploaderUrl: String = "",
+    val uploaderAvatar: String = "",
     val thumb: String = "",
     val duration: Long = 0,
     val views: Long = -1,
@@ -18,6 +19,7 @@ data class VideoItem(
         .put("title", title)
         .put("uploader", uploader)
         .put("uploaderUrl", uploaderUrl)
+        .put("uploaderAvatar", uploaderAvatar)
         .put("thumb", thumb)
         .put("duration", duration)
         .put("views", views)
@@ -29,6 +31,7 @@ data class VideoItem(
             title = o.optString("title"),
             uploader = o.optString("uploader"),
             uploaderUrl = o.optString("uploaderUrl"),
+            uploaderAvatar = o.optString("uploaderAvatar"),
             thumb = o.optString("thumb"),
             duration = o.optLong("duration"),
             views = o.optLong("views", -1),

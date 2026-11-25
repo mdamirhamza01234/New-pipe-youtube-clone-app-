@@ -8,6 +8,8 @@ import android.media.AudioManager
 import android.view.GestureDetector
 import android.view.MotionEvent
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -149,11 +151,25 @@ fun WatchScreen(nav: Nav) {
     val showHud: (String) -> Unit = { hud = it }
     var controllerVisible by remember { mutableStateOf(true) }
 
+    // Swipe-down se minimize (sirf non-fullscreen mein)
+    var swipeDelta by remember { mutableStateOf(0f) }
+
     Surface(Modifier.fillMaxSize(), color = cs.background, contentColor = cs.onBackground) {
         Column(
             Modifier
                 .fillMaxSize()
-                .then(if (compact) Modifier else Modifier.statusBarsPadding().navigationBarsPadding()),
+                .then(if (compact) Modifier else Modifier.statusBarsPadding().navigationBarsPadding())
+                .then(if (compact) Modifier else Modifier.pointerInput(Unit) {
+                    detectVerticalDragGestures(
+                        onDragStart = { swipeDelta = 0f },
+                        onVerticalDrag = { _, delta -> swipeDelta += delta },
+                        onDragEnd = {
+                            if (swipeDelta > 120f) PlayerController.expanded = false
+                            swipeDelta = 0f
+                        },
+                        onDragCancel = { swipeDelta = 0f },
+                    )
+                }),
         ) {
             Box(
                 if (compact) Modifier.fillMaxSize()

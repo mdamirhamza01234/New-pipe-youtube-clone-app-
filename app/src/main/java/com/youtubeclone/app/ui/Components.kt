@@ -133,7 +133,7 @@ fun VideoCard(v: VideoItem, onClick: () -> Unit, onChannel: () -> Unit) {
             DurationBadge(v.duration, Modifier.align(Alignment.BottomEnd).padding(8.dp))
         }
         Row(Modifier.padding(start = 12.dp, end = 4.dp, top = 12.dp), verticalAlignment = Alignment.Top) {
-            Avatar(null, v.uploader, 36.dp, Modifier.clickable(onClick = onChannel))
+            Avatar(v.uploaderAvatar.ifBlank { null }, v.uploader, 36.dp, Modifier.clickable(onClick = onChannel))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
