@@ -287,10 +287,12 @@ fun WatchScreen(nav: Nav) {
                 }
 
                 // YouTube jaise controls: previous / next, autoplay toggle, CC, settings
-                if (!compact && !inPip && info != null && controllerVisible) {
+                if (!inPip && info != null && controllerVisible) {
                     var settings by remember { mutableStateOf<String?>(null) }
                     Row(
-                        Modifier.align(Alignment.TopEnd),
+                        // Fullscreen mein settings neeche (fullscreen button ke upar), normal mein upar right
+                        if (compact) Modifier.align(Alignment.BottomEnd).padding(bottom = 52.dp, end = 8.dp)
+                        else Modifier.align(Alignment.TopEnd),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         androidx.compose.material3.Switch(
